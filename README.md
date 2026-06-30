@@ -159,14 +159,7 @@ Cloud-Kitchen-Market-Intelligence/
 
 ## 📸 Dashboard Preview
 
-> Add your Power BI dashboard screenshot here.
-
-Example:
-
-```
-Dashboard/Dashboard_Overview.png
-```
-
+![Cloud Kitchen Dashboard](Dashboard_Overview.png)
 ---
 
 ## 🚀 Future Enhancements
@@ -191,9 +184,9 @@ B.Tech, Indian Institute of Technology Guwahati
 - Business Analyst
 - Product Analyst
 
-LinkedIn: *(Add your profile)*
+LinkedIn: *(https://www.linkedin.com/in/devendra-kumar-918775256/)*
 
-GitHub: *(Add your profile)*
+GitHub: *(https://github.com/devendrakumar2901)*
 
 ---
 
