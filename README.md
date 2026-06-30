@@ -190,4 +190,3 @@ GitHub: *(https://github.com/devendrakumar2901)*
 
 ---
 
-⭐ If you found this project interesting, feel free to star the repository.# Cloud-Kitchen-Market-Intelligence
