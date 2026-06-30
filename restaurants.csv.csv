@@ -1,0 +1,36 @@
+Restaurant,Cuisine,Rating,Reviews,Cost_For_Two,Locality,Delivery_Time
+La Pino'z Pizza,"Pizza, Italian",4.1,2.7K+,500,Krishi Nagar,35-40 mins
+McDonald's,"Burgers, Beverages",4.4,2.8K+,400,Parijat Nagar,35-40 mins
+Artisan,"Pizza, Fast Food",3.6,15,300,Vasant Market,35-40 mins
+Pizza Hut,Pizza,4.3,8.4K+,300,College Road,40-45 mins
+Domino's Pizza,"Pizza, Italian",3.9,9.2K+,700,College Road,20-25 mins
+Burger King,"Burgers, American",4.3,39K+,350,Ramdas Colony,25-30 mins
+KFC,"Burgers, Fast Food",4.1,97K+,400,College Road,49-54 mins
+Luscious Layers,"Desserts, Cakes & Pastries",4.4,10K+,350,College Road,35-40 mins
+Behrouz Biryani,"Biryani, North Indian",4.2,5.9K+,500,Thatte Nagar,30-35 mins
+Dum Safar Biryani,"Biryani, Hyderabadi",4,1.7K+,500,City Centre,40-50 mins
+Nadbrahma Idli,"South Indian, Indian",4.5,436,100,Nas Ambad,30-40 mins
+Anna's House of Dosa,"South Indian, Tandoor",4.3,837,200,Gangapur Road,40-45 mins
+My Udupi Spice,"South Indian, Chinese",4.2,6.9K+,300,College Road,35-40 mins
+Hotel Durga,"South Indian, Sandwich",4.6,1.8K+,200,Gangapur Road,30-35 mins
+Curry Leaves,"North Indian, Chinese",4.4,18K+,250,Jehan Circle,35-40 mins
+Front Page,"Snacks, Chinese",4.4,5.3K+,400,Sharanpur Road,30-35 mins
+Raman Loni Sponge Dosa Center,South Indian,4.3,168,100,Nas Ambad,35-45 mins
+Haldiram's Restaurant,"North Indian, Chaat",4.3,6.7K+,400,Doodh Bazar,35-45 mins
+Hotel Yahoo,"North Indian, Tandoor",4.5,12K+,650,Sharanpur,40-50 mins
+LunchBox - Meals and Thalis,"Thalis, North Indian",4.3,7.6K+,300,Thatte Nagar,40-45 mins
+The Good Bowl,"Biryani, North Indian",4.3,3K+,400,Thatte Nagar,35-40 mins
+Thakur Ji,"Thalis, North Indian",4.2,3.1K+,200,Shradha Mall Road,35-40 mins
+Barbeque Nation,"North Indian, Barbecue",3.9,1.8K+,600,Lavate Nagar,45-55 mins
+Mughal Darbar,"Mughlai, Biryani",4.4,5K+,300,Doodh Bazar,30-40 mins
+Nashik Coffee House,North Indian,4.8,4,200,Trimbak Road,35-40 mins
+Hakka Tikka,"North Indian, Chinese",4.2,1.3K+,450,College Road,40-45 mins
+Hotel Inayat Cafe,"North Indian, Biryani",4.5,36K+,400,Indira Nagar,35-40 mins
+Shree Sadguru Pure Veg Chinese,"Chinese, North Indian",4,297,250,Vidya Vikas Circle,35-40 mins
+Kaka Ka Dhaba,"North Indian, Biryani",4.3,9.8K+,450,Gangapur Road,35-40 mins
+Guruprasad Chinese Corner,"Chinese, North Indian",4.1,719,250,Panchavati,45-55 mins
+Grill Chinese,Chinese,3.7,59,200,Nas College Road,45-55 mins
+Maggi Xpress,"Chinese, Street Food",,Too Few Ratings,200,Nas Bombay Naka,45-50 mins
+Shegaon Kachori Centre,"Snacks, Maharashtrian",4.6,122,150,Gole Colony,35-40 mins
+Hotel Krishna Leela Family Restaurant,"Chinese, Maharashtrian",4.4,423,200,Nas Bombay Naka,40-45 mins
+Desi Wok,"Chinese, Fast Food",4.3,29,250,Nas College Road,40-50 mins

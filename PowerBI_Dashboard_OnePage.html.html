@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Restaurant Market Intelligence — One-Page Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#15130f;
+    --canvas:#1b1812;
+    --panel:#211e16;
+    --line:#352f22;
+    --cream:#f4ede0;
+    --muted:#a89c80;
+    --accent:#e0742a;
+    --accent-2:#8fae5a;
+    --accent-3:#d9b54a;
+    --red:#c9544a;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--cream);
+    font-family:'Segoe UI',Tahoma,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Consolas','Courier New',monospace;}
+
+  .canvas{
+    max-width:1500px; margin:0 auto; padding:14px 16px;
+    display:grid;
+    grid-template-rows:auto auto 1fr;
+    gap:10px;
+    min-height:100vh;
+  }
+
+  /* HEADER BAR */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:8px;
+    padding:10px 18px;
+  }
+  .topbar h1{font-size:18px; margin:0; font-weight:600; letter-spacing:.01em;}
+  .topbar h1 span{color:var(--accent);}
+  .topbar .tag{font-size:10px; color:var(--muted); margin-top:2px;}
+  .filters{display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .filters label{font-size:9px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin-right:4px;}
+  .filters select{
+    background:var(--canvas); color:var(--cream); border:1px solid var(--line);
+    border-radius:5px; padding:5px 8px; font-size:11px;
+  }
+  .filters button{
+    background:transparent; color:var(--accent); border:1px solid var(--accent);
+    border-radius:5px; padding:6px 12px; font-size:10px; cursor:pointer; letter-spacing:.03em;
+  }
+  .filters button:hover{background:var(--accent); color:var(--bg);}
+  .fcount{font-size:10px; color:var(--muted);}
+
+  /* KPI STRIP */
+  .kpi-strip{display:grid; grid-template-columns:repeat(6,1fr); gap:8px;}
+  .kpi{
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--accent);
+    border-radius:6px; padding:8px 12px; min-height:54px; display:flex; flex-direction:column; justify-content:center;
+  }
+  .kpi-label{font-size:9px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:3px;}
+  .kpi-val{font-size:20px; font-weight:700; line-height:1;}
+  .kpi-val span{font-size:11px; color:var(--accent-3); font-weight:400;}
+
+  /* MAIN GRID — Power BI style canvas */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(12, 1fr);
+    grid-template-rows:repeat(6, 1fr);
+    gap:8px;
+    flex:1;
+    min-height:0;
+  }
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:7px;
+    padding:8px 12px 4px; display:flex; flex-direction:column; min-height:0; overflow:hidden;
+  }
+  .panel h3{
+    margin:0 0 2px; font-size:10.5px; font-weight:600; text-transform:uppercase;
+    letter-spacing:.03em; color:var(--accent-3); flex-shrink:0;
+  }
+  .panel .q{font-size:8.5px; color:var(--muted); font-style:italic; margin-bottom:4px; flex-shrink:0;}
+  .panel .chart-wrap{flex:1; min-height:0; position:relative;}
+  canvas{max-width:100%;}
+
+  /* grid placements */
+  .p-cuisine-count  { grid-column:1/4;   grid-row:1/3; }
+  .p-cuisine-rating { grid-column:4/7;   grid-row:1/3; }
+  .p-cost-cuisine   { grid-column:7/10;  grid-row:1/3; }
+  .p-scatter        { grid-column:10/13; grid-row:1/4; }
+
+  .p-expensive-rest { grid-column:1/4;   grid-row:3/5; }
+  .p-fastest        { grid-column:4/7;   grid-row:3/5; }
+  .p-delivery-cuisine{grid-column:7/10;  grid-row:3/5; }
+
+  .p-menu-expensive { grid-column:1/5;   grid-row:5/7; }
+  .p-menu-cat       { grid-column:5/8;   grid-row:5/7; }
+  .p-recommendation { grid-column:8/13;  grid-row:4/7; }
+
+  table{width:100%; border-collapse:collapse; font-size:10px;}
+  th{
+    text-align:left; font-size:8px; text-transform:uppercase; letter-spacing:.03em;
+    color:var(--accent-3); padding:3px 5px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--panel);
+  }
+  td{padding:3px 5px; border-bottom:1px solid #2a261c; color:var(--cream); font-size:10px;}
+  .num{font-family:'Consolas',monospace; text-align:right;}
+  .scroll-table{flex:1; overflow-y:auto; min-height:0;}
+  .scroll-table::-webkit-scrollbar{width:5px;}
+  .scroll-table::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px;}
+
+  /* RECOMMENDATION PANEL */
+  .reco{
+    background:linear-gradient(155deg,#241f15,var(--panel));
+    border:1px solid var(--accent-3);
+  }
+  .reco h3{color:var(--accent-3);}
+  .reco-list{flex:1; overflow-y:auto; min-height:0; display:flex; flex-direction:column; gap:4px;}
+  .reco-row{display:flex; gap:7px; align-items:flex-start; font-size:10.5px; line-height:1.3;}
+  .reco-icon{font-size:12px; flex-shrink:0; width:16px;}
+  .reco-row b{color:var(--cream);}
+  .reco-row span{color:var(--muted); display:block; font-size:9.5px;}
+
+  footer{
+    text-align:center; font-size:9px; color:var(--muted); margin-top:8px; flex-shrink:0;
+  }
+
+  @media (max-width:1100px){
+    .grid{ grid-template-columns:1fr 1fr; grid-template-rows:none; }
+    .panel{ grid-column:auto !important; grid-row:auto !important; min-height:260px; }
+    .kpi-strip{grid-template-columns:repeat(3,1fr);}
+    .canvas{height:auto;}
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <div class="topbar">
+    <div>
+      <h1>Restaurant <span>Market</span> Intelligence — Single Page Dashboard</h1>
+      <div class="tag mono">35 RESTAURANTS · 10 CUISINES · 44 MENU ITEMS</div>
+    </div>
+    <div class="filters">
+      <div><label>Cuisine</label><select id="f-cuisine"><option value="">All</option></select></div>
+      <div><label>Restaurant</label><select id="f-restaurant"><option value="">All</option></select></div>
+      <div><label>Min Rating</label>
+        <select id="f-rating">
+          <option value="0">All</option>
+          <option value="3.5">3.5+</option>
+          <option value="4.0">4.0+</option>
+          <option value="4.3">4.3+</option>
+          <option value="4.5">4.5+</option>
+        </select>
+      </div>
+      <button id="f-reset">RESET</button>
+      <div class="fcount mono" id="f-count"></div>
+    </div>
+  </div>
+
+  <div class="kpi-strip" id="kpi-strip"></div>
+
+  <div class="grid">
+
+    <div class="panel p-cuisine-count">
+      <h3>Restaurant Count by Cuisine</h3>
+      <div class="q">Which cuisines dominate the market?</div>
+      <div class="chart-wrap"><canvas id="chart-cuisine-count"></canvas></div>
+    </div>
+
+    <div class="panel p-cuisine-rating">
+      <h3>Avg Rating by Cuisine</h3>
+      <div class="q">Which are most preferred?</div>
+      <div class="chart-wrap"><canvas id="chart-cuisine-rating"></canvas></div>
+    </div>
+
+    <div class="panel p-cost-cuisine">
+      <h3>Avg Cost for Two by Cuisine</h3>
+      <div class="q">Which cuisines are premium?</div>
+      <div class="chart-wrap"><canvas id="chart-cost-cuisine"></canvas></div>
+    </div>
+
+    <div class="panel p-scatter">
+      <h3>Cost vs Rating</h3>
+      <div class="q">Bubble = Reviews · Best value finder</div>
+      <div class="chart-wrap"><canvas id="chart-scatter"></canvas></div>
+    </div>
+
+    <div class="panel p-expensive-rest">
+      <h3>Top 10 Most Expensive Restaurants</h3>
+      <div class="q">Pricing benchmark</div>
+      <div class="scroll-table"><table id="table-expensive"><thead><tr><th>Restaurant</th><th>Cuisine</th><th class="num">₹</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="panel p-fastest">
+      <h3>Fastest Delivery Restaurants</h3>
+      <div class="q">Operational efficiency</div>
+      <div class="scroll-table"><table id="table-fast"><thead><tr><th>Restaurant</th><th>Cuisine</th><th class="num">Min</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="panel p-delivery-cuisine">
+      <h3>Avg Delivery Time by Cuisine</h3>
+      <div class="q">Which cuisine delivers faster?</div>
+      <div class="chart-wrap"><canvas id="chart-delivery-cuisine"></canvas></div>
+    </div>
+
+    <div class="panel p-menu-expensive">
+      <h3>Top 10 Most Expensive Menu Items</h3>
+      <div class="q">Premium pricing products (5 restaurants w/ menu data)</div>
+      <div class="scroll-table"><table id="table-menu-expensive"><thead><tr><th>Item</th><th>Restaurant</th><th class="num">₹</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="panel p-menu-cat">
+      <h3>Menu Categories by Restaurant</h3>
+      <div class="q">Breadth of offerings</div>
+      <div class="chart-wrap"><canvas id="chart-menu-cat"></canvas></div>
+    </div>
+
+    <div class="panel p-recommendation reco">
+      <h3>Business Recommendation — Market Summary</h3>
+      <div class="reco-list">
+        <div class="reco-row"><div class="reco-icon">🔴</div><div><b>Highly Saturated:</b> North Indian (8 restaurants) and Chinese (6) — below-median ratings (4.36 / 4.13).</div></div>
+        <div class="reco-row"><div class="reco-icon">🟡</div><div><b>Underrepresented:</b> South Indian — only 5 restaurants, 3rd-highest rating (4.38), lowest avg cost (₹180).</div></div>
+        <div class="reco-row"><div class="reco-icon">🟢</div><div><b>Recommended Opportunity:</b> South Indian Cloud Kitchen.</div></div>
+        <div class="reco-row"><div class="reco-icon">🎯</div><div><b>Target Customers:</b> Students & working professionals.</div></div>
+        <div class="reco-row"><div class="reco-icon">💰</div><div><b>Suggested Price Range:</b> ₹100–₹250 for two.</div></div>
+        <div class="reco-row"><div class="reco-icon">⚡</div><div><b>Key Advantage:</b> Lower competition, strong ratings, faster path to top-rated tier.</div></div>
+      </div>
+      <div class="chart-wrap" style="flex:1.1; margin-top:4px;"><canvas id="chart-opportunity"></canvas></div>
+    </div>
+
+  </div>
+
+  <footer>RESTAURANT MARKET INTELLIGENCE · ONE-PAGE DASHBOARD · POWER BI–STYLE CANVAS LAYOUT</footer>
+</div>
+
+<script>
+const RAW = {"restaurants": [{"Restaurant": "La Pino'z Pizza", "Cuisine": "Pizza, Italian", "Rating": 4.1, "Reviews": "2.7K+", "Cost_For_Two": 500, "Locality": "Krishi Nagar", "Delivery_Time": "35-40 mins", "Reviews_Num": 2700, "Delivery_Mid": 37.5, "Primary_Cuisine": "Pizza"}, {"Restaurant": "McDonald's", "Cuisine": "Burgers, Beverages", "Rating": 4.4, "Reviews": "2.8K+", "Cost_For_Two": 400, "Locality": "Parijat Nagar", "Delivery_Time": "35-40 mins", "Reviews_Num": 2800, "Delivery_Mid": 37.5, "Primary_Cuisine": "Burgers"}, {"Restaurant": "Artisan", "Cuisine": "Pizza, Fast Food", "Rating": 3.6, "Reviews": "15", "Cost_For_Two": 300, "Locality": "Vasant Market", "Delivery_Time": "35-40 mins", "Reviews_Num": 15, "Delivery_Mid": 37.5, "Primary_Cuisine": "Pizza"}, {"Restaurant": "Pizza Hut", "Cuisine": "Pizza", "Rating": 4.3, "Reviews": "8.4K+", "Cost_For_Two": 300, "Locality": "College Road", "Delivery_Time": "40-45 mins", "Reviews_Num": 8400, "Delivery_Mid": 42.5, "Primary_Cuisine": "Pizza"}, {"Restaurant": "Domino's Pizza", "Cuisine": "Pizza, Italian", "Rating": 3.9, "Reviews": "9.2K+", "Cost_For_Two": 700, "Locality": "College Road", "Delivery_Time": "20-25 mins", "Reviews_Num": 9200, "Delivery_Mid": 22.5, "Primary_Cuisine": "Pizza"}, {"Restaurant": "Burger King", "Cuisine": "Burgers, American", "Rating": 4.3, "Reviews": "39K+", "Cost_For_Two": 350, "Locality": "Ramdas Colony", "Delivery_Time": "25-30 mins", "Reviews_Num": 39000, "Delivery_Mid": 27.5, "Primary_Cuisine": "Burgers"}, {"Restaurant": "KFC", "Cuisine": "Burgers, Fast Food", "Rating": 4.1, "Reviews": "97K+", "Cost_For_Two": 400, "Locality": "College Road", "Delivery_Time": "49-54 mins", "Reviews_Num": 97000, "Delivery_Mid": 51.5, "Primary_Cuisine": "Burgers"}, {"Restaurant": "Luscious Layers", "Cuisine": "Desserts, Cakes & Pastries", "Rating": 4.4, "Reviews": "10K+", "Cost_For_Two": 350, "Locality": "College Road", "Delivery_Time": "35-40 mins", "Reviews_Num": 10000, "Delivery_Mid": 37.5, "Primary_Cuisine": "Desserts"}, {"Restaurant": "Behrouz Biryani", "Cuisine": "Biryani, North Indian", "Rating": 4.2, "Reviews": "5.9K+", "Cost_For_Two": 500, "Locality": "Thatte Nagar", "Delivery_Time": "30-35 mins", "Reviews_Num": 5900, "Delivery_Mid": 32.5, "Primary_Cuisine": "Biryani"}, {"Restaurant": "Dum Safar Biryani", "Cuisine": "Biryani, Hyderabadi", "Rating": 4.0, "Reviews": "1.7K+", "Cost_For_Two": 500, "Locality": "City Centre", "Delivery_Time": "40-50 mins", "Reviews_Num": 1700, "Delivery_Mid": 45.0, "Primary_Cuisine": "Biryani"}, {"Restaurant": "Nadbrahma Idli", "Cuisine": "South Indian, Indian", "Rating": 4.5, "Reviews": "436", "Cost_For_Two": 100, "Locality": "Nas Ambad", "Delivery_Time": "30-40 mins", "Reviews_Num": 436, "Delivery_Mid": 35.0, "Primary_Cuisine": "South Indian"}, {"Restaurant": "Anna's House of Dosa", "Cuisine": "South Indian, Tandoor", "Rating": 4.3, "Reviews": "837", "Cost_For_Two": 200, "Locality": "Gangapur Road", "Delivery_Time": "40-45 mins", "Reviews_Num": 837, "Delivery_Mid": 42.5, "Primary_Cuisine": "South Indian"}, {"Restaurant": "My Udupi Spice", "Cuisine": "South Indian, Chinese", "Rating": 4.2, "Reviews": "6.9K+", "Cost_For_Two": 300, "Locality": "College Road", "Delivery_Time": "35-40 mins", "Reviews_Num": 6900, "Delivery_Mid": 37.5, "Primary_Cuisine": "South Indian"}, {"Restaurant": "Hotel Durga", "Cuisine": "South Indian, Sandwich", "Rating": 4.6, "Reviews": "1.8K+", "Cost_For_Two": 200, "Locality": "Gangapur Road", "Delivery_Time": "30-35 mins", "Reviews_Num": 1800, "Delivery_Mid": 32.5, "Primary_Cuisine": "South Indian"}, {"Restaurant": "Curry Leaves", "Cuisine": "North Indian, Chinese", "Rating": 4.4, "Reviews": "18K+", "Cost_For_Two": 250, "Locality": "Jehan Circle", "Delivery_Time": "35-40 mins", "Reviews_Num": 18000, "Delivery_Mid": 37.5, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Front Page", "Cuisine": "Snacks, Chinese", "Rating": 4.4, "Reviews": "5.3K+", "Cost_For_Two": 400, "Locality": "Sharanpur Road", "Delivery_Time": "30-35 mins", "Reviews_Num": 5300, "Delivery_Mid": 32.5, "Primary_Cuisine": "Snacks"}, {"Restaurant": "Raman Loni Sponge Dosa Center", "Cuisine": "South Indian", "Rating": 4.3, "Reviews": "168", "Cost_For_Two": 100, "Locality": "Nas Ambad", "Delivery_Time": "35-45 mins", "Reviews_Num": 168, "Delivery_Mid": 40.0, "Primary_Cuisine": "South Indian"}, {"Restaurant": "Haldiram's Restaurant", "Cuisine": "North Indian, Chaat", "Rating": 4.3, "Reviews": "6.7K+", "Cost_For_Two": 400, "Locality": "Doodh Bazar", "Delivery_Time": "35-45 mins", "Reviews_Num": 6700, "Delivery_Mid": 40.0, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Hotel Yahoo", "Cuisine": "North Indian, Tandoor", "Rating": 4.5, "Reviews": "12K+", "Cost_For_Two": 650, "Locality": "Sharanpur", "Delivery_Time": "40-50 mins", "Reviews_Num": 12000, "Delivery_Mid": 45.0, "Primary_Cuisine": "North Indian"}, {"Restaurant": "LunchBox - Meals and Thalis", "Cuisine": "Thalis, North Indian", "Rating": 4.3, "Reviews": "7.6K+", "Cost_For_Two": 300, "Locality": "Thatte Nagar", "Delivery_Time": "40-45 mins", "Reviews_Num": 7600, "Delivery_Mid": 42.5, "Primary_Cuisine": "Thalis"}, {"Restaurant": "The Good Bowl", "Cuisine": "Biryani, North Indian", "Rating": 4.3, "Reviews": "3K+", "Cost_For_Two": 400, "Locality": "Thatte Nagar", "Delivery_Time": "35-40 mins", "Reviews_Num": 3000, "Delivery_Mid": 37.5, "Primary_Cuisine": "Biryani"}, {"Restaurant": "Thakur Ji", "Cuisine": "Thalis, North Indian", "Rating": 4.2, "Reviews": "3.1K+", "Cost_For_Two": 200, "Locality": "Shradha Mall Road", "Delivery_Time": "35-40 mins", "Reviews_Num": 3100, "Delivery_Mid": 37.5, "Primary_Cuisine": "Thalis"}, {"Restaurant": "Barbeque Nation", "Cuisine": "North Indian, Barbecue", "Rating": 3.9, "Reviews": "1.8K+", "Cost_For_Two": 600, "Locality": "Lavate Nagar", "Delivery_Time": "45-55 mins", "Reviews_Num": 1800, "Delivery_Mid": 50.0, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Mughal Darbar", "Cuisine": "Mughlai, Biryani", "Rating": 4.4, "Reviews": "5K+", "Cost_For_Two": 300, "Locality": "Doodh Bazar", "Delivery_Time": "30-40 mins", "Reviews_Num": 5000, "Delivery_Mid": 35.0, "Primary_Cuisine": "Mughlai"}, {"Restaurant": "Nashik Coffee House", "Cuisine": "North Indian", "Rating": 4.8, "Reviews": "4", "Cost_For_Two": 200, "Locality": "Trimbak Road", "Delivery_Time": "35-40 mins", "Reviews_Num": 4, "Delivery_Mid": 37.5, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Hakka Tikka", "Cuisine": "North Indian, Chinese", "Rating": 4.2, "Reviews": "1.3K+", "Cost_For_Two": 450, "Locality": "College Road", "Delivery_Time": "40-45 mins", "Reviews_Num": 1300, "Delivery_Mid": 42.5, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Hotel Inayat Cafe", "Cuisine": "North Indian, Biryani", "Rating": 4.5, "Reviews": "36K+", "Cost_For_Two": 400, "Locality": "Indira Nagar", "Delivery_Time": "35-40 mins", "Reviews_Num": 36000, "Delivery_Mid": 37.5, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Shree Sadguru Pure Veg Chinese", "Cuisine": "Chinese, North Indian", "Rating": 4.0, "Reviews": "297", "Cost_For_Two": 250, "Locality": "Vidya Vikas Circle", "Delivery_Time": "35-40 mins", "Reviews_Num": 297, "Delivery_Mid": 37.5, "Primary_Cuisine": "Chinese"}, {"Restaurant": "Kaka Ka Dhaba", "Cuisine": "North Indian, Biryani", "Rating": 4.3, "Reviews": "9.8K+", "Cost_For_Two": 450, "Locality": "Gangapur Road", "Delivery_Time": "35-40 mins", "Reviews_Num": 9800, "Delivery_Mid": 37.5, "Primary_Cuisine": "North Indian"}, {"Restaurant": "Guruprasad Chinese Corner", "Cuisine": "Chinese, North Indian", "Rating": 4.1, "Reviews": "719", "Cost_For_Two": 250, "Locality": "Panchavati", "Delivery_Time": "45-55 mins", "Reviews_Num": 719, "Delivery_Mid": 50.0, "Primary_Cuisine": "Chinese"}, {"Restaurant": "Grill Chinese", "Cuisine": "Chinese", "Rating": 3.7, "Reviews": "59", "Cost_For_Two": 200, "Locality": "Nas College Road", "Delivery_Time": "45-55 mins", "Reviews_Num": 59, "Delivery_Mid": 50.0, "Primary_Cuisine": "Chinese"}, {"Restaurant": "Maggi Xpress", "Cuisine": "Chinese, Street Food", "Rating": 4.3, "Reviews": "Too Few Ratings", "Cost_For_Two": 200, "Locality": "Nas Bombay Naka", "Delivery_Time": "45-50 mins", "Reviews_Num": 0, "Delivery_Mid": 47.5, "Primary_Cuisine": "Chinese"}, {"Restaurant": "Shegaon Kachori Centre", "Cuisine": "Snacks, Maharashtrian", "Rating": 4.6, "Reviews": "122", "Cost_For_Two": 150, "Locality": "Gole Colony", "Delivery_Time": "35-40 mins", "Reviews_Num": 122, "Delivery_Mid": 37.5, "Primary_Cuisine": "Snacks"}, {"Restaurant": "Hotel Krishna Leela Family Restaurant", "Cuisine": "Chinese, Maharashtrian", "Rating": 4.4, "Reviews": "423", "Cost_For_Two": 200, "Locality": "Nas Bombay Naka", "Delivery_Time": "40-45 mins", "Reviews_Num": 423, "Delivery_Mid": 42.5, "Primary_Cuisine": "Chinese"}, {"Restaurant": "Desi Wok", "Cuisine": "Chinese, Fast Food", "Rating": 4.3, "Reviews": "29", "Cost_For_Two": 250, "Locality": "Nas College Road", "Delivery_Time": "40-50 mins", "Reviews_Num": 29, "Delivery_Mid": 45.0, "Primary_Cuisine": "Chinese"}], "menu_items": [{"Restaurant": "Domino's Pizza", "Menu_Category": "Recommended", "Item_Name": "Classic Peppy Paneer Xtravaganza Meal", "Price": 539}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Recommended", "Item_Name": "Classic Veggie Paradise Xtravaganza Meal", "Price": 539}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Recommended", "Item_Name": "Classic Pepper BBQ Chicken Xtravaganza Meal", "Price": 579}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Recommended", "Item_Name": "Cheese Burst Peppy Paneer Xtravaganza Meal", "Price": 609}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Recommended", "Item_Name": "Cheese Burst Veggie Paradise Xtravaganza Meal", "Price": 609}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Big Big Pizza", "Item_Name": "Big Big 6in1 Pizza Veg", "Price": 799}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Big Big Pizza", "Item_Name": "Big Big 6in1 Cheeseburst Veg", "Price": 899}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Cheese Burst - 3 New Flavours", "Item_Name": "Peppy Paneer Cheese Burst", "Price": 349}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Cheese Burst - 3 New Flavours", "Item_Name": "Farmhouse Cheese Burst", "Price": 399}, {"Restaurant": "Domino's Pizza", "Menu_Category": "Cheese Burst - 3 New Flavours", "Item_Name": "Veggie Paradise Cheese Burst", "Price": 375}, {"Restaurant": "Burger King", "Menu_Category": "Recommended", "Item_Name": "Original Whopper Veg", "Price": 189}, {"Restaurant": "Burger King", "Menu_Category": "Recommended", "Item_Name": "Original Whopper Chicken", "Price": 229}, {"Restaurant": "Burger King", "Menu_Category": "Recommended", "Item_Name": "Crispy Veg Burger", "Price": 79}, {"Restaurant": "Burger King", "Menu_Category": "Recommended", "Item_Name": "Crispy Chicken Burger", "Price": 99}, {"Restaurant": "Burger King", "Menu_Category": "Sides & Snacks", "Item_Name": "King Fries", "Price": 109}, {"Restaurant": "Burger King", "Menu_Category": "Sides & Snacks", "Item_Name": "Medium Fries", "Price": 79}, {"Restaurant": "Burger King", "Menu_Category": "Burgers Wraps & More", "Item_Name": "Veg Makhani Burst Burger", "Price": 169}, {"Restaurant": "Burger King", "Menu_Category": "Burgers Wraps & More", "Item_Name": "Crispy Chicken Double Patty Burger", "Price": 199}, {"Restaurant": "KFC", "Menu_Category": "Recommended", "Item_Name": "Wednesday Chicken Bucket", "Price": 798}, {"Restaurant": "KFC", "Menu_Category": "Recommended", "Item_Name": "Wednesday Chicken Strips Bucket", "Price": 649}, {"Restaurant": "KFC", "Menu_Category": "Recommended", "Item_Name": "Wednesday Value Special Chicken Bucket", "Price": 549}, {"Restaurant": "KFC", "Menu_Category": "Chicken Burgers and Meals", "Item_Name": "Chicken Zinger Burger Classic", "Price": 229}, {"Restaurant": "KFC", "Menu_Category": "Chicken Burgers and Meals", "Item_Name": "Chicken Zinger Burger Tandoori", "Price": 228}, {"Restaurant": "KFC", "Menu_Category": "Rolls", "Item_Name": "Classic Chicken Roll", "Price": 129}, {"Restaurant": "KFC", "Menu_Category": "Hot & Crispy Chicken & Wings", "Item_Name": "Hot Chicken Wings 4pc", "Price": 189}, {"Restaurant": "KFC", "Menu_Category": "Boneless Chicken Popcorn", "Item_Name": "Chicken Popcorn Large", "Price": 269}, {"Restaurant": "KFC", "Menu_Category": "Boneless Chicken Popcorn", "Item_Name": "Chicken Popcorn Medium", "Price": 199}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Recommended", "Item_Name": "Signature Lazeez Bhuna Murgh Biryani", "Price": 399}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Recommended", "Item_Name": "Signature Dum Gosht Biryani", "Price": 509}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Recommended", "Item_Name": "Signature Zaikedar Paneer Biryani", "Price": 399}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Signature Biryani", "Item_Name": "Signature Tokhm-e-Biryani", "Price": 379}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Signature Biryani", "Item_Name": "Signature Subz-e-Biryani", "Price": 379}, {"Restaurant": "Behrouz Biryani", "Menu_Category": "Signature Biryani", "Item_Name": "Hyderabadi Dum Gosht Biryani", "Price": 599}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Idli & Vada", "Item_Name": "Idli Fry", "Price": 85}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Idli & Vada", "Item_Name": "Idli (2 Piece)", "Price": 80}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Idli & Vada", "Item_Name": "Cheese Idli Fry", "Price": 130}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Anna's Special Dosa", "Item_Name": "Ghee Podi Dosa", "Price": 135}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Anna's Special Dosa", "Item_Name": "Rasam", "Price": 50}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Cheese Dosa", "Item_Name": "Cheese Sada Dosa", "Price": 145}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Cheese Dosa", "Item_Name": "Cheese Masala Dosa", "Price": 135}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Cheese Dosa", "Item_Name": "Cheese Paneer Dosa", "Price": 200}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Garlic & Cheese Dosa", "Item_Name": "Garlic Cheese Mysore Masala Dosa", "Price": 175}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Garlic & Cheese Dosa", "Item_Name": "Garlic Cheese Uttappa", "Price": 175}, {"Restaurant": "Anna's House of Dosa", "Menu_Category": "Garlic & Cheese Dosa", "Item_Name": "Garlic Cheese Masala Dosa", "Price": 99}], "menu_categories": [{"Restaurant": "Domino's Pizza", "Category": "Recommended"}, {"Restaurant": "Domino's Pizza", "Category": "Big Big Pizza"}, {"Restaurant": "Domino's Pizza", "Category": "Cheese Burst - 3 New Flavours"}, {"Restaurant": "Burger King", "Category": "Recommended"}, {"Restaurant": "Burger King", "Category": "Burgers Wraps & More"}, {"Restaurant": "Burger King", "Category": "Sides & Snacks"}, {"Restaurant": "KFC", "Category": "Recommended"}, {"Restaurant": "KFC", "Category": "Chicken Burgers and Meals"}, {"Restaurant": "KFC", "Category": "Rolls"}, {"Restaurant": "KFC", "Category": "Hot & Crispy Chicken & Wings"}, {"Restaurant": "KFC", "Category": "Boneless Chicken Popcorn"}, {"Restaurant": "Behrouz Biryani", "Category": "Recommended"}, {"Restaurant": "Behrouz Biryani", "Category": "Signature Biryani"}, {"Restaurant": "Anna's House of Dosa", "Category": "Recommended"}, {"Restaurant": "Anna's House of Dosa", "Category": "Cheese Dosa"}, {"Restaurant": "Anna's House of Dosa", "Category": "Garlic & Cheese Dosa"}, {"Restaurant": "Anna's House of Dosa", "Category": "Idli & Vada"}, {"Restaurant": "Anna's House of Dosa", "Category": "Anna's Special Dosa"}]};
+let restaurants = RAW.restaurants;
+const menuItems = RAW.menu_items;
+const menuCats = RAW.menu_categories;
+
+const palette = ['#e0742a','#8fae5a','#d9b54a','#c9544a','#7a9bb0','#b07ab0','#d99a4a','#5a9a8f','#a08a5a','#8a5a6a'];
+const cream='#f4ede0', muted='#a89c80', line='#352f22';
+
+Chart.defaults.font.family = "'Segoe UI', sans-serif";
+Chart.defaults.font.size = 9;
+Chart.defaults.color = muted;
+Chart.defaults.maintainAspectRatio = false;
+
+let charts = {};
+function destroyCharts(){ Object.values(charts).forEach(c=>c && c.destroy()); charts={}; }
+function uniq(arr){ return [...new Set(arr)]; }
+function groupBy(arr, key){ const m={}; arr.forEach(x=>{(m[x[key]]=m[x[key]]||[]).push(x);}); return m; }
+function avg(arr){ return arr.reduce((a,b)=>a+b,0)/arr.length; }
+
+function populateFilters(){
+  const cuisineSel = document.getElementById('f-cuisine');
+  const restSel = document.getElementById('f-restaurant');
+  uniq(RAW.restaurants.map(r=>r.Primary_Cuisine)).sort().forEach(c=>{
+    const o=document.createElement('option'); o.value=c; o.textContent=c; cuisineSel.appendChild(o);
+  });
+  uniq(RAW.restaurants.map(r=>r.Restaurant)).sort().forEach(r=>{
+    const o=document.createElement('option'); o.value=r; o.textContent=r; restSel.appendChild(o);
+  });
+}
+
+function applyFilters(){
+  const cuisine = document.getElementById('f-cuisine').value;
+  const rest = document.getElementById('f-restaurant').value;
+  const minRating = parseFloat(document.getElementById('f-rating').value);
+  restaurants = RAW.restaurants.filter(r=>{
+    if(cuisine && r.Primary_Cuisine !== cuisine) return false;
+    if(rest && r.Restaurant !== rest) return false;
+    if(r.Rating < minRating) return false;
+    return true;
+  });
+  document.getElementById('f-count').textContent = `${restaurants.length} / ${RAW.restaurants.length}`;
+  renderAll();
+}
+
+function renderKPIs(){
+  const grid = document.getElementById('kpi-strip');
+  const totalCategories = uniq(menuCats.map(m=>m.Category)).length;
+  const totalItems = menuItems.length;
+  const avgRating = restaurants.length? avg(restaurants.map(r=>r.Rating)).toFixed(2) : '–';
+  const avgCost = restaurants.length? Math.round(avg(restaurants.map(r=>r.Cost_For_Two))) : '–';
+  const avgDelivery = restaurants.length? Math.round(avg(restaurants.map(r=>r.Delivery_Mid))) : '–';
+  const kpis = [
+    {label:'Total Restaurants', val:restaurants.length, unit:''},
+    {label:'Menu Categories', val:totalCategories, unit:''},
+    {label:'Total Menu Items', val:totalItems, unit:''},
+    {label:'Average Rating', val:avgRating, unit:'★'},
+    {label:'Avg Cost for Two', val:'₹'+avgCost, unit:''},
+    {label:'Avg Delivery Time', val:avgDelivery, unit:'min'},
+  ];
+  grid.innerHTML = kpis.map(k=>`
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${k.val}<span> ${k.unit}</span></div>
+    </div>`).join('');
+}
+
+function renderCuisineCharts(){
+  const groups = groupBy(restaurants, 'Primary_Cuisine');
+  const cuisines = Object.keys(groups).sort((a,b)=>groups[b].length-groups[a].length);
+  charts.cc = new Chart(document.getElementById('chart-cuisine-count'), {
+    type:'bar',
+    data:{ labels:cuisines, datasets:[{ data:cuisines.map(c=>groups[c].length), backgroundColor:palette[0], borderRadius:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:8}}}, y:{grid:{color:line}, ticks:{precision:0}} } }
+  });
+  const ratingsSorted = [...cuisines].sort((a,b)=>avg(groups[b].map(r=>r.Rating))-avg(groups[a].map(r=>r.Rating)));
+  charts.cr = new Chart(document.getElementById('chart-cuisine-rating'), {
+    type:'bar',
+    data:{ labels:ratingsSorted, datasets:[{ data:ratingsSorted.map(c=>avg(groups[c].map(r=>r.Rating)).toFixed(2)), backgroundColor:palette[1], borderRadius:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:8}}}, y:{min:3, grid:{color:line}} } }
+  });
+}
+
+function renderPricing(){
+  const groups = groupBy(restaurants, 'Primary_Cuisine');
+  const cuisines = Object.keys(groups).sort((a,b)=>avg(groups[b].map(r=>r.Cost_For_Two))-avg(groups[a].map(r=>r.Cost_For_Two)));
+  charts.cost = new Chart(document.getElementById('chart-cost-cuisine'), {
+    type:'bar',
+    data:{ labels:cuisines, datasets:[{ data:cuisines.map(c=>Math.round(avg(groups[c].map(r=>r.Cost_For_Two)))), backgroundColor:palette[2], borderRadius:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:8}}}, y:{grid:{color:line}} } }
+  });
+  const top10 = [...restaurants].sort((a,b)=>b.Cost_For_Two-a.Cost_For_Two).slice(0,10);
+  document.querySelector('#table-expensive tbody').innerHTML = top10.map(r=>`
+    <tr><td>${r.Restaurant}</td><td>${r.Primary_Cuisine}</td><td class="num">${r.Cost_For_Two}</td></tr>`).join('');
+}
+
+function renderScatter(){
+  const points = restaurants.map(r=>({ x:r.Cost_For_Two, y:r.Rating, r:Math.max(3, Math.sqrt(r.Reviews_Num)/14), label:r.Restaurant, cuisine:r.Primary_Cuisine }));
+  const cuisineList = uniq(restaurants.map(r=>r.Primary_Cuisine));
+  const datasets = cuisineList.map((c,i)=>({
+    label:c, data:points.filter(p=>p.cuisine===c),
+    backgroundColor: palette[i%palette.length]+'aa', borderColor: palette[i%palette.length], borderWidth:1
+  }));
+  charts.scatter = new Chart(document.getElementById('chart-scatter'), {
+    type:'bubble',
+    data:{ datasets },
+    options:{
+      plugins:{ legend:{ position:'bottom', labels:{boxWidth:7, font:{size:7.5}, color:muted, padding:4} },
+        tooltip:{ callbacks:{ label:(ctx)=>`${ctx.raw.label}: ₹${ctx.raw.x} · ${ctx.raw.y}★` } } },
+      scales:{ x:{ title:{display:true, text:'Cost ₹', color:muted, font:{size:8}}, grid:{color:line}, ticks:{font:{size:7.5}} },
+               y:{ title:{display:true, text:'Rating', color:muted, font:{size:8}}, min:3, max:5, grid:{color:line}, ticks:{font:{size:7.5}} } }
+    }
+  });
+}
+
+function renderDelivery(){
+  const fastest = [...restaurants].sort((a,b)=>a.Delivery_Mid-b.Delivery_Mid).slice(0,10);
+  document.querySelector('#table-fast tbody').innerHTML = fastest.map(r=>`
+    <tr><td>${r.Restaurant}</td><td>${r.Primary_Cuisine}</td><td class="num">${r.Delivery_Mid}</td></tr>`).join('');
+  const groups = groupBy(restaurants, 'Primary_Cuisine');
+  const cuisines = Object.keys(groups).sort((a,b)=>avg(groups[a].map(r=>r.Delivery_Mid))-avg(groups[b].map(r=>r.Delivery_Mid)));
+  charts.delivery = new Chart(document.getElementById('chart-delivery-cuisine'), {
+    type:'bar',
+    data:{ labels:cuisines, datasets:[{ data:cuisines.map(c=>avg(groups[c].map(r=>r.Delivery_Mid)).toFixed(1)), backgroundColor:palette[4], borderRadius:3 }]},
+    options:{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{grid:{color:line}, ticks:{font:{size:7.5}}}, y:{grid:{display:false}, ticks:{font:{size:7.5}}} } }
+  });
+}
+
+function renderMenu(){
+  const restNames = new Set(restaurants.map(r=>r.Restaurant));
+  const filteredItems = menuItems.filter(m=>restNames.has(m.Restaurant));
+  const top10 = [...filteredItems].sort((a,b)=>b.Price-a.Price).slice(0,10);
+  document.querySelector('#table-menu-expensive tbody').innerHTML = top10.map(m=>`
+    <tr><td>${m.Item_Name}</td><td>${m.Restaurant}</td><td class="num">${m.Price}</td></tr>`).join('') || '<tr><td colspan="3" style="color:var(--muted)">No matches</td></tr>';
+  const filteredCats = menuCats.filter(m=>restNames.has(m.Restaurant));
+  const catGroups = groupBy(filteredCats, 'Restaurant');
+  const restList = Object.keys(catGroups);
+  charts.menuCat = new Chart(document.getElementById('chart-menu-cat'), {
+    type:'bar',
+    data:{ labels:restList, datasets:[{ data:restList.map(r=>catGroups[r].length), backgroundColor:palette[5], borderRadius:3 }]},
+    options:{ plugins:{legend:{display:false}}, scales:{ x:{grid:{display:false}, ticks:{font:{size:7.5}}}, y:{grid:{color:line}, ticks:{precision:0, font:{size:7.5}}} } }
+  });
+}
+
+function renderOpportunity(){
+  const groups = groupBy(RAW.restaurants, 'Primary_Cuisine');
+  const cuisines = Object.keys(groups);
+  const points = cuisines.map((c)=>({ x:avg(groups[c].map(r=>r.Cost_For_Two)), y:avg(groups[c].map(r=>r.Rating)), r:Math.max(5, groups[c].length*2.6), label:c }));
+  const datasets = cuisines.map((c,i)=>({
+    label:c, data:[points[i]],
+    backgroundColor: c==='South Indian' ? '#8fae5acc' : palette[i%palette.length]+'88',
+    borderColor: c==='South Indian' ? '#8fae5a' : palette[i%palette.length],
+    borderWidth: c==='South Indian' ? 2 : 1
+  }));
+  charts.opp = new Chart(document.getElementById('chart-opportunity'), {
+    type:'bubble',
+    data:{datasets},
+    options:{
+      plugins:{ legend:{ position:'bottom', labels:{boxWidth:6, font:{size:7}, color:muted, padding:3} },
+        tooltip:{ callbacks:{ label:(ctx)=>`${ctx.raw.label}: ₹${Math.round(ctx.raw.x)} · ${ctx.raw.y.toFixed(2)}★` } } },
+      scales:{ x:{ title:{display:true, text:'Avg Cost ₹', color:muted, font:{size:7.5}}, grid:{color:line}, ticks:{font:{size:7}} },
+               y:{ title:{display:true, text:'Avg Rating', color:muted, font:{size:7.5}}, min:3.8, max:5, grid:{color:line}, ticks:{font:{size:7}} } }
+    }
+  });
+}
+
+function renderAll(){
+  destroyCharts();
+  renderKPIs();
+  renderCuisineCharts();
+  renderPricing();
+  renderScatter();
+  renderDelivery();
+  renderMenu();
+  renderOpportunity();
+}
+
+populateFilters();
+document.getElementById('f-count').textContent = `${restaurants.length} / ${RAW.restaurants.length}`;
+['f-cuisine','f-restaurant','f-rating'].forEach(id=>document.getElementById(id).addEventListener('change', applyFilters));
+document.getElementById('f-reset').addEventListener('click', ()=>{
+  document.getElementById('f-cuisine').value=''; document.getElementById('f-restaurant').value=''; document.getElementById('f-rating').value='0';
+  restaurants = RAW.restaurants;
+  document.getElementById('f-count').textContent = `${restaurants.length} / ${RAW.restaurants.length}`;
+  renderAll();
+});
+renderAll();
+</script>
+</body>
+</html>
